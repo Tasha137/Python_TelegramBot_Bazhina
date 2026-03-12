@@ -1,6 +1,5 @@
 import telebot
-from notes_service import (create_note, read_note, edit_note, delete_note,
-                          display_notes, display_sorted_notes, calendar)
+from notes_service import (calendar)
 from secrets import API_TOKEN
 
 bot = telebot.TeleBot(API_TOKEN)
