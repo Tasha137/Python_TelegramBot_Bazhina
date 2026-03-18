@@ -5,23 +5,30 @@ import urllib3
 from db_calendar import Calendar
 from secrets import API_TOKEN
 import os
-os.environ['PYTHONWARNINGS'] = 'ignore::urllib3.exceptions.InsecureRequestWarning'
+
+os.environ["PYTHONWARNINGS"] = "ignore::urllib3.exceptions.InsecureRequestWarning"
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 telebot.apihelper.REQUEST_TIMEOUT = 30
 telebot.apihelper.LONG_POLLING_TIMEOUT = 20
 
-conn = psycopg2.connect(host='localhost', database='calendar_db', user='calendar_user', password='calendar_pass', port=5432)
+conn = psycopg2.connect(
+    host="localhost",
+    database="calendar_db",
+    user="calendar_user",
+    password="calendar_pass",
+    port=5432,
+)
 calendar = Calendar(conn)
 bot = telebot.TeleBot(API_TOKEN)
 
 conn = psycopg2.connect(
-    host='localhost',
-    database='calendar_db',
-    user='calendar_user',
-    password='calendar_pass',
-    port=5432
+    host="localhost",
+    database="calendar_db",
+    user="calendar_user",
+    password="calendar_pass",
+    port=5432,
 )
 
 calendar = Calendar(conn)
@@ -29,10 +36,11 @@ calendar = Calendar(conn)
 bot = telebot.TeleBot(API_TOKEN)
 
 
-@bot.message_handler(commands=['start'])
+@bot.message_handler(commands=["start"])
 def start(message):
-    bot.reply_to(message,
-                 """🗓️ Календарь-Помощник (PostgreSQL)
+    bot.reply_to(
+        message,
+        """🗓️ Календарь-Помощник (PostgreSQL)
          
          📅 Календарь:
          /create_event <название> <дата> <время> <описание>
@@ -41,15 +49,18 @@ def start(message):
          /edit_event <название> <новая_дата> <новое_описание>
          /delete_event <название>
          
-         /Пример: /create_event Встреча 2026-03-15 14:00 тест""")
+         /Пример: /create_event Встреча 2026-03-15 14:00 тест""",
+    )
 
 
-@bot.message_handler(commands=['create_event'])
+@bot.message_handler(commands=["create_event"])
 def create_event_handler(message):
     try:
         args = message.text.split()[1:]
         if len(args) < 4:
-            bot.reply_to(message, "❌ /create_event <название> <дата> <время> <описание>")
+            bot.reply_to(
+                message, "❌ /create_event <название> <дата> <время> <описание>"
+            )
             return
 
         event_name, event_date, event_time = args[0], args[1], args[2]
@@ -64,7 +75,7 @@ def create_event_handler(message):
         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
 
-@bot.message_handler(commands=['list_events'])
+@bot.message_handler(commands=["list_events"])
 def list_events_handler(message):
     try:
         # ← ИСПОЛЬЗУЕТ ТВОЙ НОВЫЙ КЛАСС!
@@ -74,7 +85,7 @@ def list_events_handler(message):
         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
 
-@bot.message_handler(commands=['read_event'])
+@bot.message_handler(commands=["read_event"])
 def read_event_handler(message):
     try:
         args = message.text.split()[1:]
@@ -86,19 +97,23 @@ def read_event_handler(message):
         # ← ИСПОЛЬЗУЕТ ТВОЙ НОВЫЙ КЛАСС!
         events = calendar.read_event(event_name)
         if events:
-            bot.reply_to(message, f"✅ Найдено событие '{event_name}' (проверь консоль)")
+            bot.reply_to(
+                message, f"✅ Найдено событие '{event_name}' (проверь консоль)"
+            )
         else:
             bot.reply_to(message, "❌ Событие не найдено")
     except Exception as e:
         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
 
-@bot.message_handler(commands=['edit_event'])
+@bot.message_handler(commands=["edit_event"])
 def edit_event_handler(message):
     try:
         args = message.text.split()[1:]
         if len(args) < 3:
-            bot.reply_to(message, "❌ /edit_event <название> <новая_дата> <новое_описание>")
+            bot.reply_to(
+                message, "❌ /edit_event <название> <новая_дата> <новое_описание>"
+            )
             return
 
         event_name = args[0]
@@ -114,7 +129,7 @@ def edit_event_handler(message):
         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
 
-@bot.message_handler(commands=['delete_event'])
+@bot.message_handler(commands=["delete_event"])
 def delete_event_handler(message):
     try:
         args = message.text.split()[1:]

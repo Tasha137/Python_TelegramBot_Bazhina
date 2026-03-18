@@ -1,5 +1,6 @@
 # notes_service.py — ТОЛЬКО КАЛЕНДАРЬ (Задание №4)
 
+
 class Calendar:
     def __init__(self):
         self.events = {}
@@ -11,7 +12,7 @@ class Calendar:
             "name": event_name,
             "date": event_date,
             "time": event_time,
-            "details": event_details
+            "details": event_details,
         }
         self.events[event_id] = event
         return True, f"✅ Событие '{event_name}' создано (ID: {event_id})"

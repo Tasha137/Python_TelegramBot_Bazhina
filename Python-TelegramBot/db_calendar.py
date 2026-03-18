@@ -39,10 +39,13 @@ class Calendar:
             cur = self._get_cursor()
 
             # Вставка новой строки
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO events (name, date, time, details) 
                 VALUES (%s, %s, %s, %s)
-            """, (event_name, event_date, event_time, event_details))
+            """,
+                (event_name, event_date, event_time, event_details),
+            )
 
             self.conn.commit()
             cur.close()
@@ -59,11 +62,14 @@ class Calendar:
         try:
             cur = self._get_cursor()
 
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT id, name, date, time, details 
                 FROM events 
                 WHERE name ILIKE %s
-            """, (f"%{event_name}%",))
+            """,
+                (f"%{event_name}%",),
+            )
 
             events = cur.fetchall()
             cur.close()
@@ -72,7 +78,8 @@ class Calendar:
                 print(f"\n📋 Найдено событие '{event_name}':")
                 for event in events:
                     print(
-                        f"  ID: {event[0]}, Название: {event[1]}, Дата: {event[2]}, Время: {event[3]}, Детали: {event[4]}")
+                        f"  ID: {event[0]}, Название: {event[1]}, Дата: {event[2]}, Время: {event[3]}, Детали: {event[4]}"
+                    )
                 return events
             else:
                 print(f"❌ Событие '{event_name}' не найдено")
@@ -87,11 +94,13 @@ class Calendar:
         try:
             cur = self._get_cursor()
 
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT id, name, date, time, details 
                 FROM events 
                 ORDER BY date, time
-            """)
+            """
+            )
 
             events = cur.fetchall()
             cur.close()
@@ -100,7 +109,9 @@ class Calendar:
                 print("\n📅 ВСЕ СОБЫТИЯ:")
                 print("-" * 60)
                 for event in events:
-                    print(f"ID: {event[0]:2} | {event[1]:20} | {event[2]} {event[3]:8} | {event[4]}")
+                    print(
+                        f"ID: {event[0]:2} | {event[1]:20} | {event[2]} {event[3]:8} | {event[4]}"
+                    )
                 print("-" * 60)
             else:
                 print("📭 Календарь пуст")
@@ -118,19 +129,28 @@ class Calendar:
 
             # Обновление полей
             if new_date and new_description:
-                cur.execute("""
+                cur.execute(
+                    """
                     UPDATE events 
                     SET date = %s, details = %s 
                     WHERE name ILIKE %s
-                """, (new_date, new_description, f"%{event_name}%"))
+                """,
+                    (new_date, new_description, f"%{event_name}%"),
+                )
             elif new_date:
-                cur.execute("""
+                cur.execute(
+                    """
                     UPDATE events SET date = %s WHERE name ILIKE %s
-                """, (new_date, f"%{event_name}%"))
+                """,
+                    (new_date, f"%{event_name}%"),
+                )
             elif new_description:
-                cur.execute("""
+                cur.execute(
+                    """
                     UPDATE events SET details = %s WHERE name ILIKE %s
-                """, (new_description, f"%{event_name}%"))
+                """,
+                    (new_description, f"%{event_name}%"),
+                )
 
             rows_updated = cur.rowcount
             self.conn.commit()
@@ -153,9 +173,12 @@ class Calendar:
         try:
             cur = self._get_cursor()
 
-            cur.execute("""
+            cur.execute(
+                """
                 DELETE FROM events WHERE name ILIKE %s
-            """, (f"%{event_name}%",))
+            """,
+                (f"%{event_name}%",),
+            )
 
             rows_deleted = cur.rowcount
             self.conn.commit()

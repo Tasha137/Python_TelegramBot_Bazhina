@@ -1,5 +1,12 @@
 import re
-from notes_service import create_note, read_note, edit_note, delete_note, display_notes, display_sorted_notes
+from notes_service import (
+    create_note,
+    read_note,
+    edit_note,
+    delete_note,
+    display_notes,
+    display_sorted_notes,
+)
 
 
 def main():
@@ -63,4 +70,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
