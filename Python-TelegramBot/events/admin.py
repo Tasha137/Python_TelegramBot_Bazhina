@@ -1,8 +1,8 @@
 from django.contrib import admin
-from .models import Event
+from .models import BotStatistics, Event
 
-@admin.register(Event)
-class EventAdmin(admin.ModelAdmin):
-    list_display = ['name', 'date', 'time', 'created_at']
-    list_filter = ['date']
-    search_fields = ['name']
+@admin.register(BotStatistics)
+class BotStatisticsAdmin(admin.ModelAdmin):
+    list_display = ("date", "user_count", "event_count", "edited_events", "cancelled_events")
+    list_filter = ("date",)
+    ordering = ("-date",)

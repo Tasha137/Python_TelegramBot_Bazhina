@@ -33,18 +33,17 @@ class Calendar:
             self._connect()
         return self.conn.cursor()
 
-    def create_event(self, event_name, event_date, event_time, event_details=""):
+    def create_event(self, event_name, event_date, event_time):
         """📥 Создать событие в таблице events"""
         try:
             cur = self._get_cursor()
 
-            # Вставка новой строки
             cur.execute(
                 """
-                INSERT INTO events (name, date, time, details) 
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO events (user_id, name, date, time) 
+                VALUES (1, %s, %s, %s)
             """,
-                (event_name, event_date, event_time, event_details),
+                (event_name, event_date, event_time),
             )
 
             self.conn.commit()
@@ -54,7 +53,6 @@ class Calendar:
 
         except Exception as e:
             print(f"❌ Ошибка создания события: {e}")
-            self.conn.rollback()
             return False
 
     def read_event(self, event_name):

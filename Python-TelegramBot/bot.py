@@ -1,10 +1,16 @@
+import os
+import django
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "calendar_admin.settings")
+django.setup()
+
 import telebot
 import psycopg2
 import ssl
 import urllib3
 from db_calendar import Calendar
-from secrets import API_TOKEN
-import os
+from secrets_bot import API_TOKEN
+from events.utils import get_today_stats
 
 os.environ["PYTHONWARNINGS"] = "ignore::urllib3.exceptions.InsecureRequestWarning"
 
@@ -52,28 +58,31 @@ def start(message):
          /Пример: /create_event Встреча 2026-03-15 14:00 тест""",
     )
 
+    stat = get_today_stats()
+    stat.user_count += 1
+    stat.save()
+
 
 @bot.message_handler(commands=["create_event"])
 def create_event_handler(message):
     try:
         args = message.text.split()[1:]
         if len(args) < 4:
-            bot.reply_to(
-                message, "❌ /create_event <название> <дата> <время> <описание>"
-            )
+            bot.reply_to(message, "❌ /create_event <название> <дата> <время> <описание>")
             return
 
         event_name, event_date, event_time = args[0], args[1], args[2]
-        event_details = " ".join(args[3:])
 
-        # ← ИСПОЛЬЗУЕТ ТВОЙ НОВЫЙ КЛАСС!
-        if calendar.create_event(event_name, event_date, event_time, event_details):
+        if calendar.create_event(event_name, event_date, event_time):  # убрали event_details
             bot.reply_to(message, f"✅ Событие '{event_name}' создано в PostgreSQL!")
         else:
             bot.reply_to(message, "❌ Ошибка создания")
     except Exception as e:
         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
+    stat = get_today_stats()
+    stat.event_count += 1
+    stat.save()
 
 @bot.message_handler(commands=["list_events"])
 def list_events_handler(message):
@@ -128,6 +137,9 @@ def edit_event_handler(message):
     except Exception as e:
         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
+    stat = get_today_stats()
+    stat.event_count += 1
+    stat.save()
 
 @bot.message_handler(commands=["delete_event"])
 def delete_event_handler(message):
@@ -145,6 +157,10 @@ def delete_event_handler(message):
             bot.reply_to(message, "❌ Событие не найдено")
     except Exception as e:
         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
+
+    stat = get_today_stats()
+    stat.event_count += 1
+    stat.save()
 
 
 print("🚀 Бот с PostgreSQL запущен!")
