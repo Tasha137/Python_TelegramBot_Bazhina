@@ -56,3 +56,36 @@ def is_user_free(user, event_date, event_time, duration_hours=1):
         if not (new_end <= busy_start or new_start >= busy_end):
             return False, f"Занят: {busy_start.strftime('%H:%M')} - {busy_end.strftime('%H:%M')}"
     return True, "Свободен"
+
+
+def get_user_events(telegram_id: int, days_ahead: int = 30) -> list:
+    """Получает события пользователя"""
+    try:
+        from events.models import TelegramUser, Event
+        from django.utils import timezone
+        from datetime import timedelta
+
+        user = TelegramUser.objects.get(telegram_id=telegram_id)
+        events = Event.objects.filter(
+            owner=user
+        ).order_by('start_datetime')[:10]  # топ 10 событий
+
+        result = []
+        for event in events:
+            result.append({
+                'id': event.id,
+                'title': event.title,
+                'start_datetime': event.start_datetime,
+                'end_datetime': event.end_datetime
+            })
+        return result
+    except Exception as e:
+        print(f"❌ get_user_events: {e}")
+        return []
+
+    except TelegramUser.DoesNotExist:
+        print(f"🔍 Пользователь {telegram_id} не найден")  # ДИАГНОСТИКА
+        return []
+    except Exception as e:
+        print(f"❌ Ошибка get_user_events: {e}")  # ДИАГНОСТИКА
+        return []

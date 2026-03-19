@@ -11,6 +11,8 @@ import urllib3
 from db_calendar import Calendar
 from secrets_bot import API_TOKEN
 from events.utils import get_today_stats
+from events.models import TelegramUser
+from events.utils import get_user_events
 
 os.environ["PYTHONWARNINGS"] = "ignore::urllib3.exceptions.InsecureRequestWarning"
 
@@ -268,5 +270,130 @@ def decline_handler(message):  # ← параметр message
         bot.reply_to(message, f"❌ Ошибка отклонения: {str(e)}")
 
 
+@bot.message_handler(commands=["login"])
+def cmd_login(message):
+    telegram_id = message.from_user.id
+    username = message.from_user.username or message.from_user.first_name
+
+    user, created = TelegramUser.objects.get_or_create(
+        telegram_id=telegram_id,
+        defaults={'username': username, 'first_name': message.from_user.first_name}
+    )
+
+    if created:
+        bot.reply_to(message, f"✅ Профиль создан!\n👤 @{username}\n🆔 {telegram_id}")
+    else:
+        user.username = username
+        user.first_name = message.from_user.first_name
+        user.save()
+        bot.reply_to(message, f"✅ Профиль обновлён!\n👤 @{username}")
+
+
+@bot.message_handler(commands=["calendar"])
+def cmd_calendar(message):
+    telegram_id = message.from_user.id
+    events = get_user_events(telegram_id)
+
+    if not events:
+        bot.reply_to(message, "📅 У вас пока нет событий\n\n🔗 /create_event Встреча 2026-03-20 14:00 Описание")
+        return
+
+    text = "📅 *Ваш календарь:*\n\n"
+    for i, event in enumerate(events, 1):
+        start = event['start_datetime'].strftime("%d.%m %H:%M")
+        text += f"{i}. {event['title']}\n   `{start}`\n\n"
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("➕ Добавить событие", callback_data="add_event"))
+    markup.add(types.InlineKeyboardButton("✏️ Управление", callback_data="manage_calendar"))
+
+    bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
+
+
+@bot.message_handler(commands=["debug_events"])
+def cmd_debug_events(message):
+    """DEBUG: показывает ВСЕ события и владельцев"""
+    try:
+        from events.models import Event, TelegramUser
+
+        # Все пользователи
+        users = list(TelegramUser.objects.all().values('id', 'username', 'telegram_id'))
+        user_text = f"👥 Пользователи ({len(users)}):\n"
+        for u in users:
+            user_text += f"• ID:{u['id']} @{u['username']} (TG:{u['telegram_id']})\n"
+
+        # Все события с владельцами
+        events = Event.objects.all().values('id', 'name', 'owner_id')
+        event_text = f"\n📅 События ({len(events)}):\n"
+        for e in events:
+            owner_id = e['owner_id']
+            if owner_id:
+                try:
+                    owner = TelegramUser.objects.get(id=owner_id)
+                    owner_name = f"@{owner.username}"
+                except:
+                    owner_name = f"ID:{owner_id} (удалён)"
+            else:
+                owner_name = "❌ БЕЗ ВЛАДЕЛЬЦА"
+            event_text += f"• ID:{e['id']} {e['name']} (owner: {owner_name})\n"
+
+        telegram_id = message.from_user.id
+        my_events = Event.objects.filter(owner__telegram_id=telegram_id).count()
+        event_text += f"\n💎 Твоих событий: {my_events}"
+
+        bot.reply_to(message, f"{user_text}\n{event_text}")
+
+    except Exception as e:
+        bot.reply_to(message, f"❌ Debug ошибка: {str(e)}")
+
+
+@bot.message_handler(commands=["add_mine"])
+def cmd_add_mine(message):
+    """Создаёт событие сразу привязанное к твоему профилю"""
+    try:
+        telegram_id = message.from_user.id
+        args = message.text.split()[1:]
+        if len(args) < 4:
+            bot.reply_to(message, "❌ /add_mine <название> <дата> <время> <описание>")
+            return
+
+        from events.models import TelegramUser, Event
+
+        # 1. Получаем пользователя
+        user = TelegramUser.objects.get(telegram_id=telegram_id)
+
+        # 2. Создаём событие БЕЗ owner сначала
+        event = Event.objects.create(
+            name=args[0],
+            date=args[1],
+            time=args[2],
+            details=" ".join(args[3:])
+        )
+
+        # 3. ОБНОВЛЯЕМ owner ПОСЛЕ сохранения
+        event.owner = user
+        event.save()
+
+        bot.reply_to(message, f"✅ *Твоё событие* `{event.name}` создано!\n📅 {event.date} {event.time}",
+                     parse_mode='Markdown')
+
+    except Exception as e:
+        print(f"❌ add_mine: {e}")
+        bot.reply_to(message, f"❌ Ошибка: {str(e)}")
+
+@bot.message_handler(commands=["test"])
+def cmd_test(message):
+    telegram_id = message.from_user.id
+    from events.models import TelegramUser
+    user = TelegramUser.objects.filter(telegram_id=telegram_id).first()
+
+    if user:
+        bot.reply_to(message, f"✅ Профиль: @{user.username} ID:{user.id}")
+    else:
+        bot.reply_to(message, f"❌ Профиль не найден для ID: {telegram_id}")
+
+
 print("🚀 Бот с PostgreSQL запущен!")
 bot.infinity_polling()
+
+
