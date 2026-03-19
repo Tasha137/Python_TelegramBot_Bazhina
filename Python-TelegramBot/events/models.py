@@ -12,6 +12,7 @@ class Event(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     owner = models.ForeignKey('TelegramUser', on_delete=models.SET_NULL, null=True, blank=True,
                               related_name='owned_events')
+    is_public = models.BooleanField(default=False, verbose_name="Публичное")
 
     def __str__(self):
         return f"{self.owner.username} - {self.name} - {self.date} - {self.time}"

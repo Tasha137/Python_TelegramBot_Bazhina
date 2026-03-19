@@ -13,6 +13,7 @@ from secrets_bot import API_TOKEN
 from events.utils import get_today_stats
 from events.models import TelegramUser
 from events.utils import get_user_events
+import telebot.types as types
 
 os.environ["PYTHONWARNINGS"] = "ignore::urllib3.exceptions.InsecureRequestWarning"
 
@@ -245,7 +246,7 @@ def accept_handler(message):
 
 
 @bot.message_handler(func=lambda m: m.text.startswith("/decline_"))
-def decline_handler(message):  # ← параметр message
+def decline_handler(message):
     try:
         event_id = int(message.text.split("_")[1])
         participant_id = 1
@@ -291,24 +292,72 @@ def cmd_login(message):
 
 @bot.message_handler(commands=["calendar"])
 def cmd_calendar(message):
-    telegram_id = message.from_user.id
-    events = get_user_events(telegram_id)
+    try:
+        telegram_id = message.from_user.id
+        events = get_user_events(telegram_id)
 
-    if not events:
-        bot.reply_to(message, "📅 У вас пока нет событий\n\n🔗 /create_event Встреча 2026-03-20 14:00 Описание")
-        return
+        if not events:
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton("➕ Создать", callback_data="add_mine"))
+            bot.reply_to(message,
+                         "📅 *У вас пока нет событий*\n\n"
+                         "`/add_mine Встреча 2026-03-20 15:00 Описание`",
+                         parse_mode='Markdown', reply_markup=markup)
+            return
 
-    text = "📅 *Ваш календарь:*\n\n"
-    for i, event in enumerate(events, 1):
-        start = event['start_datetime'].strftime("%d.%m %H:%M")
-        text += f"{i}. {event['title']}\n   `{start}`\n\n"
+        text = f"📅 Ваш календарь ({len(events)}):\n\n"
+        for i, event in enumerate(events, 1):
+            date = event.get('date', '?')
+            time = event.get('time', '?')
+            name = event.get('name', 'Без названия')
+            text += f"{i}. *{name}*\n   📅 `{date} {time}`\n"
+            text += f"   /publish_{event['id']} | /unpublish_{event['id']}\n\n"
 
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("➕ Добавить событие", callback_data="add_event"))
-    markup.add(types.InlineKeyboardButton("✏️ Управление", callback_data="manage_calendar"))
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            types.InlineKeyboardButton("➕ Добавить", callback_data="add_mine"),
+            types.InlineKeyboardButton("📤 Публичные", callback_data="public")
+        )
 
-    bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
+        bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
 
+    except Exception as e:
+        print(f"❌ CALENDAR ERROR: {e}")
+        bot.reply_to(message, f"❌ Ошибка: {str(e)}")
+
+
+@bot.message_handler(func=lambda m: m.text.startswith("/publish_"))
+def publish_handler(message):
+    """Делает событие публичным"""
+    try:
+        event_id = int(message.text.split("_")[1])
+        from events.models import Event
+
+        event = Event.objects.get(id=event_id)
+        event.is_public = True
+        event.save()
+
+        bot.reply_to(message, f"✅ *{event.name}* теперь ПУБЛИЧНОЕ!\n"
+                              f"📅 {event.date} {event.time}\n"
+                              f"🔗 Другие смогут увидеть через /public_events")
+    except Exception as e:
+        bot.reply_to(message, f"❌ Ошибка: {str(e)}")
+
+
+@bot.message_handler(func=lambda m: m.text.startswith("/unpublish_"))
+def unpublish_handler(message):
+    """Делает событие приватным"""
+    try:
+        event_id = int(message.text.split("_")[1])
+        from events.models import Event
+
+        event = Event.objects.get(id=event_id)
+        event.is_public = False
+        event.save()
+
+        bot.reply_to(message, f"🔒 *{event.name}* больше НЕ публичное")
+    except Exception as e:
+        bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
 @bot.message_handler(commands=["debug_events"])
 def cmd_debug_events(message):
@@ -346,6 +395,38 @@ def cmd_debug_events(message):
     except Exception as e:
         bot.reply_to(message, f"❌ Debug ошибка: {str(e)}")
 
+
+@bot.message_handler(commands=["public_events"])
+def cmd_public_events(message):
+    """Показывает публичные события всех пользователей"""
+    try:
+        from events.models import Event, TelegramUser
+
+        public_events = Event.objects.filter(is_public=True).select_related('owner').order_by('date', 'time')[:10]
+
+        if not public_events.exists():
+            bot.reply_to(message, "🌐 Пока нет публичных событий\n\n"
+                                  "👤 Опубликуйте своё: /publish_1")
+            return
+
+        text = "🌐 *ПУБЛИЧНЫЕ СОБЫТИЯ:*\n\n"
+        for event in public_events:
+            # ✅ БЕЗОПАСНО получаем owner
+            owner_name = "Аноним"
+            if event.owner_id:  # проверяем есть ли владелец
+                try:
+                    owner_name = event.owner.username or event.owner.first_name or "Пользователь"
+                except:
+                    owner_name = f"ID:{event.owner_id}"
+
+            start = f"{event.date} {event.time}"
+            text += f"• *{event.name}*\n  👤 @{owner_name} | 📅 {start}\n\n"
+
+        bot.reply_to(message, text, parse_mode='Markdown')
+
+    except Exception as e:
+        print(f"❌ public_events: {e}")
+        bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
 @bot.message_handler(commands=["add_mine"])
 def cmd_add_mine(message):

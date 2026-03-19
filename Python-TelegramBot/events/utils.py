@@ -57,28 +57,18 @@ def is_user_free(user, event_date, event_time, duration_hours=1):
             return False, f"Занят: {busy_start.strftime('%H:%M')} - {busy_end.strftime('%H:%M')}"
     return True, "Свободен"
 
-
-def get_user_events(telegram_id: int, days_ahead: int = 30) -> list:
-    """Получает события пользователя"""
+def get_user_events(telegram_id: int) -> list:
+    """Возвращает события пользователя по ТВОИМ полям модели"""
     try:
         from events.models import TelegramUser, Event
-        from django.utils import timezone
-        from datetime import timedelta
 
         user = TelegramUser.objects.get(telegram_id=telegram_id)
-        events = Event.objects.filter(
-            owner=user
-        ).order_by('start_datetime')[:10]  # топ 10 событий
+        # ✅ ТВОИ ПОЛЯ: id, name, date, time, details
+        events = Event.objects.filter(owner=user).values(
+            'id', 'name', 'date', 'time', 'details', 'is_public'
+        )[:10]
 
-        result = []
-        for event in events:
-            result.append({
-                'id': event.id,
-                'title': event.title,
-                'start_datetime': event.start_datetime,
-                'end_datetime': event.end_datetime
-            })
-        return result
+        return list(events)
     except Exception as e:
         print(f"❌ get_user_events: {e}")
         return []
