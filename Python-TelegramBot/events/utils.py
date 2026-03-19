@@ -1,5 +1,21 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from .models import EventParticipant, Event
 from .models import BotStatistics
+
+def get_user_busy_intervals(user):
+    participations = EventParticipant.objects.filter(
+        user=user,
+        status__in=["pending", "confirmed"],
+    ).select_related("event")
+
+    intervals = []
+    for p in participations:
+        start = datetime.combine(p.event.date, p.event.time)
+        # Для простоты считаем встречу 1 час
+        end = start + timedelta(hours=1)
+        intervals.append((start, end))
+
+    return intervals
 
 def get_today_stats():
     today = datetime.now().date()
@@ -13,3 +29,30 @@ def get_today_stats():
         },
     )
     return stat
+
+
+def get_user_busy_intervals(user):
+    """Получить занятые интервалы пользователя"""
+    participations = EventParticipant.objects.filter(
+        user=user,
+        status__in=["pending", "confirmed"],
+    ).select_related("event")
+
+    intervals = []
+    for p in participations:
+        start = datetime.combine(p.event.date, p.event.time)
+        end = start + timedelta(hours=1)  # встреча 1 час
+        intervals.append((start, end))
+    return intervals
+
+
+def is_user_free(user, event_date, event_time, duration_hours=1):
+    """Проверить, свободен ли пользователь в дату/время"""
+    new_start = datetime.combine(event_date, event_time)
+    new_end = new_start + timedelta(hours=duration_hours)
+
+    busy_intervals = get_user_busy_intervals(user)
+    for busy_start, busy_end in busy_intervals:
+        if not (new_end <= busy_start or new_start >= busy_end):
+            return False, f"Занят: {busy_start.strftime('%H:%M')} - {busy_end.strftime('%H:%M')}"
+    return True, "Свободен"

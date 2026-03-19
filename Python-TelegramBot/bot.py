@@ -163,5 +163,110 @@ def delete_event_handler(message):
     stat.save()
 
 
+@bot.message_handler(commands=["invite"])
+def invite_handler(message):
+    try:
+        args = message.text.split()[1:]
+        if len(args) < 2:
+            bot.reply_to(message, "❌ /invite @username <название_события>")
+            return
+
+        username = args[0].lstrip("@")
+        event_name = " ".join(args[1:])
+
+        inviter_id = message.from_user.id
+
+        from events.models import Event
+        try:
+            event = Event.objects.filter(name__icontains=event_name).first()
+            if not event:
+                bot.reply_to(message, f"❌ Событие '{event_name}' не найдено")
+                return
+        except Exception:
+            bot.reply_to(message, f"❌ Событие '{event_name}' не найдено")
+            return
+
+        from events.utils import is_user_free
+        is_free, free_msg = True, "Свободен"
+
+        if not is_free:
+            bot.reply_to(message, f"❌ {free_msg}")
+            return
+
+        from events.models import EventParticipant
+        participant, created = EventParticipant.objects.get_or_create(
+            event=event,
+            user_id=1,
+            defaults={"status": "pending"},
+        )
+
+        if created:
+            status_text = "✅ Приглашение отправлено (ожидание)"
+        else:
+            status_text = "ℹ️ Приглашение уже существует (обновлено на ожидание)"
+
+        bot.reply_to(message, f"{status_text}\n📅 {event.date} {event.time}")
+
+        stat = get_today_stats()
+        stat.event_count += 1
+        stat.save()
+
+    except Exception as e:
+        bot.reply_to(message, f"❌ Ошибка приглашения: {str(e)}")
+
+
+@bot.message_handler(func=lambda m: m.text.startswith("/accept_"))
+def accept_handler(message):
+    try:
+        event_id = int(message.text.split("_")[1])
+
+        participant_id = 1
+
+        from events.models import EventParticipant, Event
+        participant = EventParticipant.objects.get(
+            event_id=event_id,
+            user_id=participant_id
+        )
+
+        participant.status = "confirmed"
+        participant.save()
+
+        event = Event.objects.get(id=event_id)
+        bot.reply_to(message, f"✅ Встреча '{event.name}' ПОДТВЕРЖДЕНА!\n📅 {event.date} {event.time}")
+
+        stat = get_today_stats()
+        stat.edited_events += 1
+        stat.save()
+
+    except Exception as e:
+        bot.reply_to(message, f"❌ Ошибка подтверждения: {str(e)}")
+
+
+@bot.message_handler(func=lambda m: m.text.startswith("/decline_"))
+def decline_handler(message):  # ← параметр message
+    try:
+        event_id = int(message.text.split("_")[1])
+        participant_id = 1
+
+        from events.models import EventParticipant, Event
+        participant = EventParticipant.objects.get(
+            event_id=event_id,
+            user_id=participant_id
+        )
+
+        participant.status = "cancelled"
+        participant.save()
+
+        event = Event.objects.get(id=event_id)
+        bot.reply_to(message, f"❌ Встреча '{event.name}' ОТКЛОНЕНА\n📅 {event.date} {event.time}")
+
+        stat = get_today_stats()
+        stat.cancelled_events += 1
+        stat.save()
+
+    except Exception as e:
+        bot.reply_to(message, f"❌ Ошибка отклонения: {str(e)}")
+
+
 print("🚀 Бот с PostgreSQL запущен!")
 bot.infinity_polling()
