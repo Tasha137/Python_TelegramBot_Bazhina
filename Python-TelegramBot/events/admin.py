@@ -8,7 +8,7 @@ class BotStatisticsAdmin(admin.ModelAdmin):
     list_filter = ("date",)
     ordering = ("-date",)
 
-@admin.register(Event)  # ← ДОБАВИТЬ ЭТО!
+@admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     list_display = ('name', 'date', 'time', 'owner')
     list_filter = ('date', 'owner')
@@ -16,7 +16,7 @@ class EventAdmin(admin.ModelAdmin):
 
 @admin.register(EventParticipant)  # ← Уже должно быть
 class EventParticipantAdmin(admin.ModelAdmin):
-    list_display = ("event", "user", "status")
+    list_display = ("event", "user_id", "status")
     list_filter = ("status", "event__date")
     search_fields = ("event__name", "user__username")
 

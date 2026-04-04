@@ -473,6 +473,26 @@ def cmd_test(message):
     else:
         bot.reply_to(message, f"❌ Профиль не найден для ID: {telegram_id}")
 
+@bot.message_handler(commands=["export_events"])
+def cmd_export_events(message):
+    telegram_id = message.from_user.id
+    from events.models import TelegramUser
+    user = TelegramUser.objects.filter(telegram_id=telegram_id).first()
+
+    if not user:
+        bot.reply_to(message, "❌ Сначала выполните /login")
+        return
+
+    download_url = f"http://127.0.0.1:8000/calendar/export/events/csv/?telegram_id={telegram_id}"
+    bot.reply_to(
+        message,
+        "Скачать свои события:",
+        reply_markup=types.InlineKeyboardMarkup([
+            [types.InlineKeyboardButton("📤 Скачать CSV", url=download_url)]
+        ])
+    )
+
+
 
 print("🚀 Бот с PostgreSQL запущен!")
 bot.infinity_polling()

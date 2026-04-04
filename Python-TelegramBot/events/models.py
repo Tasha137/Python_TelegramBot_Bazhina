@@ -1,21 +1,67 @@
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
+import secrets
 
-User = get_user_model()
+class TelegramUser(models.Model):
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="telegramuser",
+        blank=True,
+        null=True,
+        verbose_name="Django User"
+    )
+
+    telegram_id = models.BigIntegerField(
+        unique=True,
+        verbose_name="Telegram ID"
+    )
+    username = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Username"
+    )
+    first_name = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Имя"
+    )
+    export_token = models.CharField(
+        max_length=64,
+        unique=True,
+        blank=True,
+        null=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+    def save(self, *args, **kwargs):
+        if not self.export_token:
+            self.export_token = secrets.token_hex(16)
+        super().save(*args, **kwargs)
+
 
 class Event(models.Model):
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="owned_events")
+    owner = models.ForeignKey(
+        TelegramUser,
+        on_delete=models.CASCADE,
+        related_name='owned_events',
+        null=True,
+        blank=True,
+        verbose_name="Владелец"
+    )
     name = models.CharField(max_length=255)
     date = models.DateField()
     time = models.TimeField()
     details = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    owner = models.ForeignKey('TelegramUser', on_delete=models.SET_NULL, null=True, blank=True,
-                              related_name='owned_events')
     is_public = models.BooleanField(default=False, verbose_name="Публичное")
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.owner.username} - {self.name} - {self.date} - {self.time}"
+        owner_name = self.owner.username if self.owner else "Без владельца"
+        return f"@{self.username or self.first_name} (ID: {self.telegram_id})"
+
 
 class EventParticipant(models.Model):
     STATUS_CHOICES = [
@@ -25,32 +71,14 @@ class EventParticipant(models.Model):
     ]
 
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="participants")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="event_participations")
+    user_id = models.BigIntegerField(null=True, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
 
     class Meta:
-        unique_together = ("event", "user")
+        unique_together = ("event", "user_id")
 
     def __str__(self):
-        return f"{self.user.username} - {self.event.name} ({self.status})"
-
-
-class TelegramUser(models.Model):
-    telegram_id = models.BigIntegerField(unique=True, verbose_name="Telegram ID")
-    username = models.CharField(max_length=100, blank=True, verbose_name="Username")
-    first_name = models.CharField(max_length=100, blank=True, verbose_name="Имя")
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Telegram пользователь"
-        verbose_name_plural = "Telegram пользователи"
-
-    def __str__(self):
-        return f"@{self.username or self.first_name} (ID: {self.telegram_id})"
-
-
-Event.owner = models.ForeignKey(TelegramUser, on_delete=models.CASCADE, related_name='owned_events', null=True,
-                                blank=True, verbose_name="Владелец")
+        return f"User {self.user_id} - {self.event.name} ({self.status})"
 
 
 class BotStatistics(models.Model):
@@ -71,11 +99,9 @@ class UserStatistics(models.Model):
     cancelled_events = models.IntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        verbose_name = "Статистика пользователя"
-        verbose_name_plural = "Статистика пользователей"
+class Meta:
+    verbose_name = "Telegram пользователь"
+    verbose_name_plural = "Telegram пользователи"
 
     def __str__(self):
-        return f"Статистика @{self.user.username}"
-
-
+        return f"@{self.username or self.first_name} (ID: {self.telegram_id})"
