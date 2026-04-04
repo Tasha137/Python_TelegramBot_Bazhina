@@ -2,6 +2,9 @@ import csv
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.permissions import IsAuthenticated
+from .serializers import EventSerializer
 
 from .models import TelegramUser, Event
 
@@ -33,3 +36,14 @@ def export_events_csv(request):
         ])
 
     return response
+
+class EventListCreateAPIView(ListCreateAPIView):
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class EventDetailAPIView(RetrieveUpdateDestroyAPIView):
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
