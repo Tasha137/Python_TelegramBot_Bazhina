@@ -4,16 +4,22 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "calendar_admin.settings")
 django.setup()
 
+import time
 import telebot
 import psycopg2
+from psycopg2 import OperationalError
 import ssl
 import urllib3
 from db_calendar import Calendar
-from secrets_bot import API_TOKEN
+from secrets_bot import API_TOKEN, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, HOST, PORT, SECRET_KEY
 from events.utils import get_today_stats
 from events.models import TelegramUser
 from events.utils import get_user_events
 import telebot.types as types
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 os.environ["PYTHONWARNINGS"] = "ignore::urllib3.exceptions.InsecureRequestWarning"
 
@@ -22,28 +28,29 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 telebot.apihelper.REQUEST_TIMEOUT = 30
 telebot.apihelper.LONG_POLLING_TIMEOUT = 20
 
-conn = psycopg2.connect(
-    host="localhost",
-    database="calendar_db",
-    user="calendar_user",
-    password="calendar_pass",
-    port=5432,
-)
+def get_db_connection():
+    while True:
+        try:
+            conn = psycopg2.connect(
+                host=DB_HOST,
+                port=DB_PORT,
+                database=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWORD
+            )
+            print("✅ База данных подключена!")
+            return conn
+        except OperationalError as e:
+            if "the database system is starting up" in str(e):
+                print("⏳ База данных стартует, ждём...")
+                time.sleep(3)
+            else:
+                print(f"❌ Ошибка БД: {e}")
+                raise
+
+conn = get_db_connection()
 calendar = Calendar(conn)
 bot = telebot.TeleBot(API_TOKEN)
-
-conn = psycopg2.connect(
-    host="localhost",
-    database="calendar_db",
-    user="calendar_user",
-    password="calendar_pass",
-    port=5432,
-)
-
-calendar = Calendar(conn)
-
-bot = telebot.TeleBot(API_TOKEN)
-
 
 @bot.message_handler(commands=["start"])
 def start(message):

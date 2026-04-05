@@ -4,3 +4,4 @@ __pycache__/
 *.txt
 calendar_events.json
 .idea/
+echo ".env" >> .gitignore
