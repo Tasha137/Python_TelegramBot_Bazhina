@@ -10,3 +10,4 @@ ENV PYTHONPATH=/app
 ENV TELEGRAM_API_TOKEN=8634765574:AAEalcIcbAaYTRiIGKF7tftZxMTER_8rrPI
 
 CMD ["python", "/app/bot.py"]
+
