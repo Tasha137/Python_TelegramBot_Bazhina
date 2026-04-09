@@ -1,6 +1,3 @@
-# notes_service.py — ТОЛЬКО КАЛЕНДАРЬ (Задание №4)
-
-
 class Calendar:
     def __init__(self):
         self.events = {}
@@ -21,20 +18,26 @@ class Calendar:
         try:
             event = self.events.get(int(event_id))
             if event:
-                text = f"📅 *{event['name']}*\n🗓️ {event['date']} {event['time']}\n📝 {event['details']}"
+                text = (
+                    f"📅 *{event['name']}*\n"
+                    f"🗓️ {event['date']} {event['time']}\n"
+                    f"📝 {event['details']}"
+                )
                 return True, text
             return False, "❌ Событие не найдено"
-        except:
+        except Exception:
             return False, "❌ Неверный ID события"
 
     def list_events(self):
         if self.events:
             text = "📅 *Все события:*\n\n"
             for event_id, event in self.events.items():
-                text += f"ID {event_id}: *{event['name']}* ({event['date']} {event['time']})\n"
+                text += (
+                    f"ID {event_id}: *{event['name']}* "
+                    f"({event['date']} {event['time']})\n"
+                )
             return True, text
         return True, "📭 Событий пока нет"
 
 
-# Глобальный объект календаря
 calendar = Calendar()

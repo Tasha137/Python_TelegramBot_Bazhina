@@ -1,12 +1,12 @@
 import csv
 from django.http import HttpResponse
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAuthenticated
 from .serializers import EventSerializer
 
 from .models import TelegramUser, Event
+
 
 def export_events_csv(request):
     telegram_id = request.GET.get("telegram_id")
@@ -21,21 +21,26 @@ def export_events_csv(request):
     events = tg_user.owned_events.all()
 
     response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
-    response["Content-Disposition"] = f'attachment; filename="events_{tg_user.telegram_id}.csv"'
+    response["Content-Disposition"] = (
+        f'attachment; filename="events_{tg_user.telegram_id}.csv"'
+    )
 
     writer = csv.writer(response)
     writer.writerow(["Название", "Дата", "Время", "Детали", "Публичное?"])
 
     for event in events:
-        writer.writerow([
-            event.name,
-            event.date,
-            event.time,
-            event.details or "",
-            "Да" if event.is_public else "Нет",
-        ])
+        writer.writerow(
+            [
+                event.name,
+                event.date,
+                event.time,
+                event.details or "",
+                "Да" if event.is_public else "Нет",
+            ]
+        )
 
     return response
+
 
 class EventListCreateAPIView(ListCreateAPIView):
     queryset = Event.objects.all()

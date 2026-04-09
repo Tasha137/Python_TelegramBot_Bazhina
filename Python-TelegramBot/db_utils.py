@@ -18,7 +18,7 @@ def get_db_connection():
                 port=DB_PORT,
                 database=DB_NAME,
                 user=DB_USER,
-                password=DB_PASSWORD
+                password=DB_PASSWORD,
             )
             print("✅ База данных подключена!")
             return conn

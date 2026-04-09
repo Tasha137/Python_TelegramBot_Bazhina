@@ -23,15 +23,22 @@ def test_create_event(test_db_conn):
 
     cursor.execute(
         """
-        INSERT INTO events (user_id, name, date, time, description)
-        VALUES (123, 'Test Event', '2026-04-06', '10:00:00', 'Test description')
+        INSERT INTO events
+            (user_id, name, date, time, description)
+        VALUES
+            (123, 'Test Event', '2026-04-06',
+            '10:00:00', 'Test description')
         RETURNING id;
         """
     )
 
     event_id = cursor.fetchone()[0]
 
-    cursor.execute("SELECT name, date, time FROM events WHERE id = %s", (event_id,))
+    cursor.execute(
+        "SELECT name,"
+        " date,"
+        " time FROM events " "WHERE id = %s", (event_id,)
+    )
     name, date, time = cursor.fetchone()
 
     assert name == "Test Event"

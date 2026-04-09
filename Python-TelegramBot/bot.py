@@ -1,28 +1,24 @@
 import os
 import django
+import telebot
+import urllib3
+import telebot.types as types
+import logging
+
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "calendar_admin.settings")
-#django.setup()
+django.setup()
 
-import time
-import telebot
-import psycopg2
-from psycopg2 import OperationalError
-import ssl
-import urllib3
-from db_calendar import Calendar
-from secrets_bot import API_TOKEN, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, HOST, PORT, SECRET_KEY
+
+from secrets_bot import API_TOKEN
 from events.utils import get_today_stats
 from events.models import TelegramUser
 from events.utils import get_user_events
-from calendar_bot import Calendar
-import telebot.types as types
-import logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-os.environ["PYTHONWARNINGS"] = "ignore::urllib3.exceptions.InsecureRequestWarning"
+os.environ["PYTHONWARNINGS"] = "ignore::urllib3.exceptions.InsecureRequestWarning"  # noqa: E501
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -31,19 +27,18 @@ telebot.apihelper.LONG_POLLING_TIMEOUT = 20
 
 bot = telebot.TeleBot(API_TOKEN)
 
+
 @bot.message_handler(commands=["start"])
 def start(message):
     bot.reply_to(
         message,
         """🗓️ Календарь-Помощник (PostgreSQL)
-         
          📅 Календарь:
-         /create_event <название> <дата> <время> <описание>
+         /add_main <название> <дата> <время> <описание>
          /list_events
          /read_event <название>
          /edit_event <название> <новая_дата> <новое_описание>
          /delete_event <название>
-         
          /Пример: /create_event Встреча 2026-03-15 14:00 тест""",
     )
 
@@ -57,13 +52,18 @@ def create_event_handler(message):
     try:
         args = message.text.split()[1:]
         if len(args) < 4:
-            bot.reply_to(message, "❌ /create_event <название> <дата> <время> <описание>")
+            bot.reply_to(
+                message, "❌ /create_event <название> <дата> <время> <описание>"
+            )
             return
 
         event_name, event_date, event_time = args[0], args[1], args[2]
 
-        if calendar.create_event(event_name, event_date, event_time):  # убрали event_details
-            bot.reply_to(message, f"✅ Событие '{event_name}' создано в PostgreSQL!")
+        if calendar.create_event(event_name, event_date, event_time):
+            bot.reply_to(
+                message,
+                f"✅ Событие '{event_name}' создано в PostgreSQL!"
+            )
         else:
             bot.reply_to(message, "❌ Ошибка создания")
     except Exception as e:
@@ -73,12 +73,15 @@ def create_event_handler(message):
     stat.event_count += 1
     stat.save()
 
+
 @bot.message_handler(commands=["list_events"])
 def list_events_handler(message):
     try:
-        # ← ИСПОЛЬЗУЕТ ТВОЙ НОВЫЙ КЛАСС!
-        events = calendar.display_events()
-        bot.reply_to(message, "📅 События сохранены в PostgreSQL!\n(Проверь консоль)")
+        calendar.display_events()
+        bot.reply_to(
+            message,
+            "📅 События сохранены в PostgreSQL!\n(Проверь консоль)"
+        )
     except Exception as e:
         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
@@ -92,7 +95,6 @@ def read_event_handler(message):
             return
 
         event_name = args[0]
-        # ← ИСПОЛЬЗУЕТ ТВОЙ НОВЫЙ КЛАСС!
         events = calendar.read_event(event_name)
         if events:
             bot.reply_to(
@@ -110,7 +112,8 @@ def edit_event_handler(message):
         args = message.text.split()[1:]
         if len(args) < 3:
             bot.reply_to(
-                message, "❌ /edit_event <название> <новая_дата> <новое_описание>"
+                message,
+                "❌ /edit_event <название> <новая_дата> <новое_описание>"
             )
             return
 
@@ -118,8 +121,11 @@ def edit_event_handler(message):
         new_date = args[1]
         new_details = " ".join(args[2:])
 
-        # ← ИСПОЛЬЗУЕТ ТВОЙ НОВЫЙ КЛАСС!
-        if calendar.edit_event(event_name, new_date, new_description=new_details):
+        if calendar.edit_event(
+            event_name,
+            new_date,
+            new_description=new_details,
+        ):
             bot.reply_to(message, f"✅ Событие '{event_name}' обновлено!")
         else:
             bot.reply_to(message, "❌ Событие не найдено")
@@ -130,6 +136,7 @@ def edit_event_handler(message):
     stat.event_count += 1
     stat.save()
 
+
 @bot.message_handler(commands=["delete_event"])
 def delete_event_handler(message):
     try:
@@ -139,9 +146,11 @@ def delete_event_handler(message):
             return
 
         event_name = args[0]
-        # ← ИСПОЛЬЗУЕТ ТВОЙ НОВЫЙ КЛАСС!
         if calendar.delete_event(event_name):
-            bot.reply_to(message, f"✅ Событие '{event_name}' удалено из PostgreSQL!")
+            bot.reply_to(
+                message,
+                f"✅ Событие '{event_name}' удалено из PostgreSQL!"
+            )
         else:
             bot.reply_to(message, "❌ Событие не найдено")
     except Exception as e:
@@ -166,6 +175,7 @@ def invite_handler(message):
         inviter_id = message.from_user.id
 
         from events.models import Event
+
         try:
             event = Event.objects.filter(name__icontains=event_name).first()
             if not event:
@@ -176,6 +186,7 @@ def invite_handler(message):
             return
 
         from events.utils import is_user_free
+
         is_free, free_msg = True, "Свободен"
 
         if not is_free:
@@ -183,6 +194,7 @@ def invite_handler(message):
             return
 
         from events.models import EventParticipant
+
         participant, created = EventParticipant.objects.get_or_create(
             event=event,
             user_id=1,
@@ -192,7 +204,9 @@ def invite_handler(message):
         if created:
             status_text = "✅ Приглашение отправлено (ожидание)"
         else:
-            status_text = "ℹ️ Приглашение уже существует (обновлено на ожидание)"
+            status_text = (
+                "ℹ️ Приглашение уже существует (обновлено на ожидание)"
+            )
 
         bot.reply_to(message, f"{status_text}\n📅 {event.date} {event.time}")
 
@@ -212,16 +226,20 @@ def accept_handler(message):
         participant_id = 1
 
         from events.models import EventParticipant, Event
+
         participant = EventParticipant.objects.get(
-            event_id=event_id,
-            user_id=participant_id
+            event_id=event_id, user_id=participant_id
         )
 
         participant.status = "confirmed"
         participant.save()
 
         event = Event.objects.get(id=event_id)
-        bot.reply_to(message, f"✅ Встреча '{event.name}' ПОДТВЕРЖДЕНА!\n📅 {event.date} {event.time}")
+        bot.reply_to(
+            message,
+            f"✅ Встреча '{event.name}' ПОДТВЕРЖДЕНА!\n"
+            f"📅 {event.date} {event.time}",
+        )
 
         stat = get_today_stats()
         stat.edited_events += 1
@@ -238,16 +256,20 @@ def decline_handler(message):
         participant_id = 1
 
         from events.models import EventParticipant, Event
+
         participant = EventParticipant.objects.get(
-            event_id=event_id,
-            user_id=participant_id
+            event_id=event_id, user_id=participant_id
         )
 
         participant.status = "cancelled"
         participant.save()
 
         event = Event.objects.get(id=event_id)
-        bot.reply_to(message, f"❌ Встреча '{event.name}' ОТКЛОНЕНА\n📅 {event.date} {event.time}")
+        bot.reply_to(
+            message,
+            f"❌ Встреча '{event.name}' ОТКЛОНЕНА\n"
+            f"📅 {event.date} {event.time}",
+        )
 
         stat = get_today_stats()
         stat.cancelled_events += 1
@@ -264,11 +286,18 @@ def cmd_login(message):
 
     user, created = TelegramUser.objects.get_or_create(
         telegram_id=telegram_id,
-        defaults={'username': username, 'first_name': message.from_user.first_name}
+        defaults={
+            "username": username,
+            "first_name": message.from_user.first_name,
+        },
     )
 
     if created:
-        bot.reply_to(message, f"✅ Профиль создан!\n👤 @{username}\n🆔 {telegram_id}")
+        bot.reply_to(
+            message,
+            f"✅ Профиль создан!\n👤"
+            f" @{username}\n " f"🆔 {telegram_id}"
+        )
     else:
         user.username = username
         user.first_name = message.from_user.first_name
@@ -284,28 +313,36 @@ def cmd_calendar(message):
 
         if not events:
             markup = types.InlineKeyboardMarkup()
-            markup.add(types.InlineKeyboardButton("➕ Создать", callback_data="add_mine"))
-            bot.reply_to(message,
-                         "📅 *У вас пока нет событий*\n\n"
-                         "`/add_mine Встреча 2026-03-20 15:00 Описание`",
-                         parse_mode='Markdown', reply_markup=markup)
+            markup.add(
+                types.InlineKeyboardButton(
+                    "➕ Создать",
+                    callback_data="add_mine"
+                )
+            )
+            bot.reply_to(
+                message,
+                "📅 *У вас пока нет событий*\n\n"
+                "`/add_mine Встреча 2026-03-20 15:00 Описание`",
+                parse_mode="Markdown",
+                reply_markup=markup,
+            )
             return
 
         text = f"📅 Ваш календарь ({len(events)}):\n\n"
         for i, event in enumerate(events, 1):
-            date = event.get('date', '?')
-            time = event.get('time', '?')
-            name = event.get('name', 'Без названия')
+            date = event.get("date", "?")
+            time = event.get("time", "?")
+            name = event.get("name", "Без названия")
             text += f"{i}. *{name}*\n   📅 `{date} {time}`\n"
             text += f"   /publish_{event['id']} | /unpublish_{event['id']}\n\n"
 
         markup = types.InlineKeyboardMarkup(row_width=2)
         markup.add(
             types.InlineKeyboardButton("➕ Добавить", callback_data="add_mine"),
-            types.InlineKeyboardButton("📤 Публичные", callback_data="public")
+            types.InlineKeyboardButton("📤 Публичные", callback_data="public"),
         )
 
-        bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
+        bot.reply_to(message, text, parse_mode="Markdown", reply_markup=markup)
 
     except Exception as e:
         print(f"❌ CALENDAR ERROR: {e}")
@@ -323,9 +360,12 @@ def publish_handler(message):
         event.is_public = True
         event.save()
 
-        bot.reply_to(message, f"✅ *{event.name}* теперь ПУБЛИЧНОЕ!\n"
-                              f"📅 {event.date} {event.time}\n"
-                              f"🔗 Другие смогут увидеть через /public_events")
+        bot.reply_to(
+            message,
+            f"✅ *{event.name}* теперь ПУБЛИЧНОЕ!\n"
+            f"📅 {event.date} {event.time}\n"
+            f"🔗 Другие смогут увидеть через /public_events",
+        )
     except Exception as e:
         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
@@ -345,6 +385,7 @@ def unpublish_handler(message):
     except Exception as e:
         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
+
 @bot.message_handler(commands=["debug_events"])
 def cmd_debug_events(message):
     """DEBUG: показывает ВСЕ события и владельцев"""
@@ -352,16 +393,21 @@ def cmd_debug_events(message):
         from events.models import Event, TelegramUser
 
         # Все пользователи
-        users = list(TelegramUser.objects.all().values('id', 'username', 'telegram_id'))
+        users = list(
+            TelegramUser.objects.all().values("id", "username", "telegram_id")
+        )
         user_text = f"👥 Пользователи ({len(users)}):\n"
         for u in users:
-            user_text += f"• ID:{u['id']} @{u['username']} (TG:{u['telegram_id']})\n"
+            user_text += (
+                f"• ID:{u['id']} @{u['username']} "
+                f"(TG:{u['telegram_id']})\n"
+            )
 
         # Все события с владельцами
-        events = Event.objects.all().values('id', 'name', 'owner_id')
+        events = Event.objects.all().values("id", "name", "owner_id")
         event_text = f"\n📅 События ({len(events)}):\n"
         for e in events:
-            owner_id = e['owner_id']
+            owner_id = e["owner_id"]
             if owner_id:
                 try:
                     owner = TelegramUser.objects.get(id=owner_id)
@@ -373,7 +419,11 @@ def cmd_debug_events(message):
             event_text += f"• ID:{e['id']} {e['name']} (owner: {owner_name})\n"
 
         telegram_id = message.from_user.id
-        my_events = Event.objects.filter(owner__telegram_id=telegram_id).count()
+        my_events = (
+            Event.objects
+            .filter(owner__telegram_id=telegram_id)
+            .count()
+        )
         event_text += f"\n💎 Твоих событий: {my_events}"
 
         bot.reply_to(message, f"{user_text}\n{event_text}")
@@ -388,11 +438,18 @@ def cmd_public_events(message):
     try:
         from events.models import Event, TelegramUser
 
-        public_events = Event.objects.filter(is_public=True).select_related('owner').order_by('date', 'time')[:10]
+        public_events = (
+            Event.objects.filter(is_public=True)
+            .select_related("owner")
+            .order_by("date", "time")[:10]
+        )
 
         if not public_events.exists():
-            bot.reply_to(message, "🌐 Пока нет публичных событий\n\n"
-                                  "👤 Опубликуйте своё: /publish_1")
+            bot.reply_to(
+                message,
+                "🌐 Пока нет публичных событий\n\n" ""
+                "👤 Опубликуйте своё: /publish_1",
+            )
             return
 
         text = "🌐 *ПУБЛИЧНЫЕ СОБЫТИЯ:*\n\n"
@@ -401,18 +458,23 @@ def cmd_public_events(message):
             owner_name = "Аноним"
             if event.owner_id:  # проверяем есть ли владелец
                 try:
-                    owner_name = event.owner.username or event.owner.first_name or "Пользователь"
+                    owner_name = (
+                        event.owner.username
+                        or event.owner.first_name
+                        or "Пользователь"
+                    )
                 except:
                     owner_name = f"ID:{event.owner_id}"
 
             start = f"{event.date} {event.time}"
             text += f"• *{event.name}*\n  👤 @{owner_name} | 📅 {start}\n\n"
 
-        bot.reply_to(message, text, parse_mode='Markdown')
+        bot.reply_to(message, text, parse_mode="Markdown")
 
     except Exception as e:
         print(f"❌ public_events: {e}")
         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
+
 
 @bot.message_handler(commands=["add_mine"])
 def cmd_add_mine(message):
@@ -421,15 +483,16 @@ def cmd_add_mine(message):
         telegram_id = message.from_user.id
         args = message.text.split()[1:]
         if len(args) < 4:
-            bot.reply_to(message, "❌ /add_mine <название> <дата> <время> <описание>")
+            bot.reply_to(
+                message,
+                "❌ /add_mine <название> <дата> <время> <описание>",
+            )
             return
 
         from events.models import TelegramUser, Event
 
-        # 1. Получаем пользователя
         user = TelegramUser.objects.get(telegram_id=telegram_id)
 
-        # 2. Создаём событие БЕЗ owner сначала
         event = Event.objects.create(
             name=args[0],
             date=args[1],
@@ -437,21 +500,28 @@ def cmd_add_mine(message):
             details=" ".join(args[3:])
         )
 
-        # 3. ОБНОВЛЯЕМ owner ПОСЛЕ сохранения
         event.owner = user
         event.save()
 
-        bot.reply_to(message, f"✅ *Твоё событие* `{event.name}` создано!\n📅 {event.date} {event.time}",
-                     parse_mode='Markdown')
+        bot.reply_to(
+            message,
+            (
+                f"✅ *Твоё событие* `{event.name}` создано!\n"
+                f"📅 {event.date} {event.time}",
+            ),
+            parse_mode="Markdown",
+        )
 
     except Exception as e:
         print(f"❌ add_mine: {e}")
         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
+
 @bot.message_handler(commands=["test"])
 def cmd_test(message):
     telegram_id = message.from_user.id
     from events.models import TelegramUser
+
     user = TelegramUser.objects.filter(telegram_id=telegram_id).first()
 
     if user:
@@ -459,28 +529,30 @@ def cmd_test(message):
     else:
         bot.reply_to(message, f"❌ Профиль не найден для ID: {telegram_id}")
 
+
 @bot.message_handler(commands=["export_events"])
 def cmd_export_events(message):
     telegram_id = message.from_user.id
     from events.models import TelegramUser
+
     user = TelegramUser.objects.filter(telegram_id=telegram_id).first()
 
     if not user:
         bot.reply_to(message, "❌ Сначала выполните /login")
         return
 
-    download_url = f"http://127.0.0.1:8000/calendar/export/events/csv/?telegram_id={telegram_id}"
+    download_url = (
+        f"http://127.0.0.1:8000/calendar/export/events/csv/"
+        f"?telegram_id={telegram_id}"
+    )
     bot.reply_to(
         message,
         "Скачать свои события:",
-        reply_markup=types.InlineKeyboardMarkup([
-            [types.InlineKeyboardButton("📤 Скачать CSV", url=download_url)]
-        ])
+        reply_markup=types.InlineKeyboardMarkup(
+            [[types.InlineKeyboardButton("📤 Скачать CSV", url=download_url)]]
+        ),
     )
-
 
 
 print("🚀 Бот с PostgreSQL запущен!")
 bot.infinity_polling()
-
-

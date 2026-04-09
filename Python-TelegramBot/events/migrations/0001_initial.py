@@ -47,7 +47,10 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "telegram_id",
-                    models.BigIntegerField(unique=True, verbose_name="Telegram ID"),
+                    models.BigIntegerField(
+                        unique=True,
+                        verbose_name="Telegram ID"
+                    ),
                 ),
                 (
                     "username",
@@ -57,11 +60,20 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "first_name",
-                    models.CharField(blank=True, max_length=100, verbose_name="Имя"),
+                    models.CharField(
+                        blank=True,
+                        max_length=100,
+                        verbose_name="Имя"
+                    ),
                 ),
                 (
                     "export_token",
-                    models.CharField(blank=True, max_length=64, null=True, unique=True),
+                    models.CharField(
+                        blank=True,
+                        max_length=64,
+                        null=True,
+                        unique=True
+                    ),
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 (
@@ -95,7 +107,10 @@ class Migration(migrations.Migration):
                 ("details", models.TextField(blank=True, null=True)),
                 (
                     "is_public",
-                    models.BooleanField(default=False, verbose_name="Публичное"),
+                    models.BooleanField(
+                        default=False,
+                        verbose_name="Публичное"
+                    ),
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 (

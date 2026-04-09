@@ -1,7 +1,4 @@
 import psycopg2
-from psycopg2 import sql
-from datetime import datetime
-import re
 
 
 class Calendar:
@@ -40,7 +37,7 @@ class Calendar:
 
             cur.execute(
                 """
-                INSERT INTO events (user_id, name, date, time) 
+                INSERT INTO events (user_id, name, date, time)
                 VALUES (1, %s, %s, %s)
             """,
                 (event_name, event_date, event_time),
@@ -62,8 +59,8 @@ class Calendar:
 
             cur.execute(
                 """
-                SELECT id, name, date, time, details 
-                FROM events 
+                SELECT id, name, date, time, details
+                FROM events
                 WHERE name ILIKE %s
             """,
                 (f"%{event_name}%",),
@@ -76,7 +73,10 @@ class Calendar:
                 print(f"\n📋 Найдено событие '{event_name}':")
                 for event in events:
                     print(
-                        f"  ID: {event[0]}, Название: {event[1]}, Дата: {event[2]}, Время: {event[3]}, Детали: {event[4]}"
+                        f"  ID: {event[0]}, "
+                        f"Название: {event[1]}, "
+                        f"Дата: {event[2]}, Время: {event[3]}, "
+                        f"Детали: {event[4]}"
                     )
                 return events
             else:
@@ -94,8 +94,8 @@ class Calendar:
 
             cur.execute(
                 """
-                SELECT id, name, date, time, details 
-                FROM events 
+                SELECT id, name, date, time, details
+                FROM events
                 ORDER BY date, time
             """
             )
@@ -108,7 +108,8 @@ class Calendar:
                 print("-" * 60)
                 for event in events:
                     print(
-                        f"ID: {event[0]:2} | {event[1]:20} | {event[2]} {event[3]:8} | {event[4]}"
+                        f"ID: {event[0]:2} | {event[1]:20} | "
+                        f"{event[2]} {event[3]:8} | {event[4]}"
                     )
                 print("-" * 60)
             else:
@@ -129,8 +130,8 @@ class Calendar:
             if new_date and new_description:
                 cur.execute(
                     """
-                    UPDATE events 
-                    SET date = %s, details = %s 
+                    UPDATE events
+                    SET date = %s, details = %s
                     WHERE name ILIKE %s
                 """,
                     (new_date, new_description, f"%{event_name}%"),

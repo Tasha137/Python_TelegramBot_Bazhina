@@ -22,7 +22,13 @@ class Calendar:
     def get_events(self):
         """Возвращает все события."""
         cursor = self.conn.cursor()
-        cursor.execute("SELECT id, name, start_time, end_time, user_id FROM events")
+        cursor.execute(
+            "SELECT id,"
+            " name,"
+            " start_time,"
+            " end_time,"
+            " user_id FROM events"
+        )
         rows = cursor.fetchall()
         cursor.close()
         return rows

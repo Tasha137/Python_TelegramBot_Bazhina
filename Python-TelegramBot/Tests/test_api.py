@@ -8,6 +8,7 @@ from events.models import TelegramUser
 
 from rest_framework.authtoken.models import Token
 
+
 @pytest.mark.django_db
 def test_create_event_api_ok():
     client = APIClient()

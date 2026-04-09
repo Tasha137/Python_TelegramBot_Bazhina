@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import TelegramUser, Event
 
+
 class TelegramUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = TelegramUser

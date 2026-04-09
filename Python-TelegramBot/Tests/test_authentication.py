@@ -1,4 +1,3 @@
-import pytest
 from auth import check_user_allowed
 
 

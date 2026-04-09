@@ -13,6 +13,7 @@ def handle_start(message):
 def start_bot():
     bot.infinity_polling()
 
+
 @bot.message_handler(commands=["login"])
 def handle_login(message):
     bot.reply_to(message, "Пользователь вошёл.")
@@ -21,5 +22,3 @@ def handle_login(message):
 @bot.message_handler(commands=["help"])
 def handle_help(message):
     bot.reply_to(message, "Доступны команды: /start, /login, /help.")
-
-
