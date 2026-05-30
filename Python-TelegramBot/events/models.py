@@ -18,7 +18,12 @@ class Event(models.Model):
     date = models.DateField()
     time = models.TimeField()
     details = models.TextField(blank=True)
-    owner = models.ForeignKey(TelegramUser, on_delete=models.CASCADE, null=True)
+    owner = models.ForeignKey(
+        TelegramUser,
+        on_delete=models.CASCADE,
+        null=True,
+        related_name="owned_events",
+    )
     is_public = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

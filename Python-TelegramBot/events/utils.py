@@ -11,6 +11,6 @@ def get_today_stats():
 def get_user_events(telegram_id):
     try:
         user = TelegramUser.objects.get(telegram_id=telegram_id)
-        return list(user.event_set.values('id', 'name', 'date', 'time'))
+        return list(user.owned_events.values("id", "name", "date", "time"))
     except TelegramUser.DoesNotExist:
         return []
