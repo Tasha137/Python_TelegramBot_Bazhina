@@ -2,7 +2,6 @@ secrets.py
 secrets_bot.py
 __pycache__/
 *.pyc
-*.txt
 calendar_events.json
 .idea/
 .env

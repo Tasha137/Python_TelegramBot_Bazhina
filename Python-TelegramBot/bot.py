@@ -29,6 +29,9 @@ telebot.apihelper.LONG_POLLING_TIMEOUT = 20
 bot = telebot.TeleBot(API_TOKEN)
 calendar = telegram_calendar.Calendar()
 
+BASE_URL = os.getenv("DJANGO_BASE_URL", "http://127.0.0.1:8000")
+EXPORT_URL = f"{BASE_URL}/calendar/export/events/csv/"
+
 
 def parse_args(message_text: str):
     try:

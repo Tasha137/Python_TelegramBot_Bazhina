@@ -1,9 +1,13 @@
+import os
 import requests
 
-TOKEN = "f2d6f8662efb38d6e9da6e33c96908318602811f"
+TOKEN = os.environ.get("DRF_TOKEN")
 EVENTS_URL = "http://127.0.0.1:8000/api/events/"
 
 if __name__ == "__main__":
+    if not TOKEN:
+        raise ValueError("DRF_TOKEN is not set in environment variables")
+
     headers = {"Authorization": f"Token {TOKEN}"}
     data = {
         "name": "Test API Event",

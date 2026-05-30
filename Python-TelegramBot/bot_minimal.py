@@ -1,5 +1,6 @@
 import telebot
-from secrets_bot import API_TOKEN
+import os
+API_TOKEN = os.getenv("API_TOKEN")
 
 
 bot = telebot.TeleBot(API_TOKEN)
