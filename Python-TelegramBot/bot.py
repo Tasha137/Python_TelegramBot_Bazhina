@@ -662,9 +662,7 @@ def cmd_export_events(message):
         return
 
     # Формируем ссылку на экспорт.
-    download_url = (
-        f"http://127.0.0.1:8000/calendar/export/events/csv/?telegram_id={telegram_id}"
-    )
+    download_url = f"{EXPORT_URL}?telegram_id={telegram_id}"
 
     # Отправляем кнопку скачивания.
     bot.reply_to(
