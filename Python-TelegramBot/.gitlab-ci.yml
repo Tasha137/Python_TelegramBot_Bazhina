@@ -1,0 +1,10 @@
+stages:
+  - test
+
+hello_job:
+  stage: test
+  image: alpine:latest
+  script:
+    - echo "Hello from GitLab CI!"
+  only:
+    - main
